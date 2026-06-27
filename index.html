@@ -101,22 +101,7 @@
     </style>
 </head>
 <body>
-    <h2><img src="https://avatars.githubusercontent.com/u/292855028?v=4" class="crypto-logo" style="width:58px;"> CoinNewList</h2>
-    
-    <nav>
-        <a href="#">All Crypto</a>
-        <a href="#">NewList</a>
-        <a href="#">Trending</a>
-        <a href="#">News</a>
-    </nav>
-    
-    <div class="container">
-        <h3>Most Visited Cryptocurrencies</h3>
-        <div class="trending" id="trendingContainer">
-            <div class="trending-item">Loading trending...</div>
-        </div>
-        
-        <table id="cryptoTable">
+    <table id="cryptoTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -128,10 +113,9 @@
                 </tr>
             </thead>
             <tbody id="cryptoTableBody">
-                <tr><td colspan="6" class="loading-state">Loading top 100 cryptocurrencies...</td></tr>
+                <tr><td colspan="6" class="loading-state">Loading cryptocurrencies ranked 101200...</td></tr>
             </tbody>
         </table>
-        <div class="refresh-status">🔄 Auto-refreshes every 1 second • Data via CoinGecko</div>
     </div>
     
     <script>
@@ -176,11 +160,11 @@
         let renderScheduled = false;
         let trendingRenderScheduled = false;
         
-        // ========== RENDER TABLE (TOP 100) - BATCH UPDATES FOR SMOOTHNESS ==========
+        // ========== RENDER TABLE (RANKS 101-200) - BATCH UPDATES FOR SMOOTHNESS ==========
         function renderTable() {
             if (!tableBody) return;
             if (!currentCryptoData.length) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="loading-state">Loading cryptocurrencies ranked 101-200...</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="6" class="loading-state">Loading cryptocurrencies ranked 101\u2013200...</td></tr>';
                 return;
             }
             
@@ -304,14 +288,14 @@
         let currentMarketFetchId = 0;
         let currentTrendingFetchId = 0;
         
-        // Fetch cryptocurrencies ranked 101-200 (second page, per_page=100)
+        // Fetch cryptocurrencies ranked 101-200 (page=2, per_page=100)
         async function fetchTop100Crypto() {
             const fetchId = ++currentMarketFetchId;
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 8000);
                 
-                // Request the second page of 100 coins, sorted by market cap descending
+                // Request the second page (ranks 101-200) of 100 coins, sorted by market cap descending
                 const response = await fetch(
                     'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=2&sparkline=false&price_change_percentage=1h,24h',
                     { signal: controller.signal }
