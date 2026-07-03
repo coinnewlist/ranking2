@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -118,10 +118,130 @@
             margin-top: 12px;
             text-align: right;
         }
+        .details-page {
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        .details-page.show {
+            display: block;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .details-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .details-header img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        .details-info {
+            text-align: left;
+        }
+        .details-info h2 {
+            margin: 0 0 5px 0;
+            font-size: 28px;
+        }
+        .details-info p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .back-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .detail-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .detail-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .detail-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            word-break: break-word;
+        }
+        tbody tr {
+            cursor: pointer;
+        }
+        tbody tr:hover {
+            background-color: #f0f0f0;
+        }
+        .links-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .links-section h3 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+        .links-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .link-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .link-button:hover {
+            background-color: #0056b3;
+        }
+        .link-button.secondary {
+            background-color: #6c757d;
+        }
+        .link-button.secondary:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
-    <table id="cryptoTable">
+    <div id="listView">
+        <table id="cryptoTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -136,6 +256,12 @@
                 <tr><td colspan="6" class="loading-state">Loading cryptocurrencies ranked 101–200...</td></tr>
             </tbody>
         </table>
+    </div>
+
+    <div id="detailsView" class="details-page">
+        <button class="back-button" onclick="showListView()">← Back to List</button>
+        <div id="detailsContainer"></div>
+    </div>
     </div>
     
     <script>
@@ -233,6 +359,7 @@
             const row = document.createElement('tr');
             row.dataset.rank = rank;
             row.dataset.cryptoId = crypto.id || `rank-${rank}`;
+            row.onclick = () => showDetailsView(crypto, rank);
 
             const rankCell = document.createElement('td');
             rankCell.textContent = rank;
@@ -497,9 +624,156 @@
             const img = new Image();
             img.src = src;
         });
+
+        // ========== DETAILS PAGE NAVIGATION ==========
+        function showDetailsView(crypto, rank) {
+            const listView = document.getElementById('listView');
+            const detailsView = document.getElementById('detailsView');
+            const detailsContainer = document.getElementById('detailsContainer');
+            
+            // Show loading state
+            detailsContainer.innerHTML = '<div class="loading-state">Loading details...</div>';
+            listView.style.display = 'none';
+            detailsView.classList.add('show');
+            
+            // Fetch detailed data including contract addresses
+            fetch(`https://api.coingecko.com/api/v3/coins/${crypto.id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`)
+                .then(response => response.json())
+                .then(detailedCrypto => {
+                    // Build details HTML
+                    const marketCap = formatMarketCap(crypto.market_cap ?? 0);
+                    const price = formatPrice(crypto.current_price ?? 0);
+                    const change1h = crypto.price_change_percentage_1h_in_currency ?? 0;
+                    const change24h = crypto.price_change_percentage_24h ?? 0;
+                    const high24h = crypto.high_24h ?? 0;
+                    const low24h = crypto.low_24h ?? 0;
+                    const volume = formatMarketCap(crypto.total_volume ?? 0);
+                    const circulatingSupply = crypto.circulating_supply ? crypto.circulating_supply.toLocaleString() : 'N/A';
+                    const maxSupply = crypto.max_supply ? crypto.max_supply.toLocaleString() : 'Unlimited';
+                    const changeClass1h = change1h >= 0 ? 'green' : 'red';
+                    const changeClass24h = change24h >= 0 ? 'green' : 'red';
+                    
+                    const imageUrl = crypto.image || '';
+                    const imageSrc = imageUrl ? `<img src="${imageUrl}" alt="${crypto.name}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.src='https://cryptologos.cc/logos/bitcoin-btc-logo.png'">` : '';
+                    
+                    // Build contract addresses section from detailed data
+                    let linksHtml = '';
+                    const contracts = [];
+                    
+                    if (detailedCrypto.platforms) {
+                        if (detailedCrypto.platforms['ethereum']) contracts.push({name: 'Ethereum', address: detailedCrypto.platforms['ethereum'], explorer: 'https://etherscan.io/token/'});
+                        if (detailedCrypto.platforms['binance-smart-chain']) contracts.push({name: 'BSC', address: detailedCrypto.platforms['binance-smart-chain'], explorer: 'https://bscscan.com/token/'});
+                        if (detailedCrypto.platforms['polygon']) contracts.push({name: 'Polygon', address: detailedCrypto.platforms['polygon'], explorer: 'https://polygonscan.com/token/'});
+                        if (detailedCrypto.platforms['solana']) contracts.push({name: 'Solana', address: detailedCrypto.platforms['solana'], explorer: 'https://solscan.io/token/'});
+                        if (detailedCrypto.platforms['fantom']) contracts.push({name: 'Fantom', address: detailedCrypto.platforms['fantom'], explorer: 'https://ftmscan.com/token/'});
+                        if (detailedCrypto.platforms['avalanche-2']) contracts.push({name: 'Avalanche', address: detailedCrypto.platforms['avalanche-2'], explorer: 'https://snowtrace.io/token/'});
+                        if (detailedCrypto.platforms['arbitrum-one']) contracts.push({name: 'Arbitrum', address: detailedCrypto.platforms['arbitrum-one'], explorer: 'https://arbiscan.io/token/'});
+                        if (detailedCrypto.platforms['optimistic-ethereum']) contracts.push({name: 'Optimism', address: detailedCrypto.platforms['optimistic-ethereum'], explorer: 'https://optimistic.etherscan.io/token/'});
+                    }
+                    
+                    if (contracts.length > 0) {
+                        linksHtml = `<div class="links-section">
+                        <h3>📋 Smart Contracts</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">`;
+                        
+                        contracts.forEach(contract => {
+                            linksHtml += `
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace;">
+                                <div style="font-weight: bold; margin-bottom: 5px; color: #333;">${contract.name}</div>
+                                <div style="word-break: break-all; font-size: 12px; color: #666; margin-bottom: 8px;">${contract.address}</div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button onclick="navigator.clipboard.writeText('${contract.address}').then(() => alert('Copied to clipboard!')).catch(e => console.error('Failed to copy:', e))" style="background-color: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Copy</button>
+                                    <a href="${contract.explorer}${contract.address}" target="_blank" style="background-color: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 12px; display: inline-block;">View on BlockScan</a>
+                                </div>
+                            </div>`;
+                        });
+                        
+                        linksHtml += `</div></div>`;
+                    } else {
+                        linksHtml = `<div class="links-section">
+                        <h3>📋 Smart Contracts</h3>
+                        <div class="links-list">
+                            <p style="color: #999; margin: 0;">No contract addresses available for this cryptocurrency</p>
+                        </div>
+                    </div>`;
+                    }
+                    
+                    const detailsHtml = `
+                        <div class="details-header">
+                            ${imageSrc}
+                            <div class="details-info">
+                                <h2>${crypto.name}</h2>
+                                <p><strong>Rank:</strong> #${rank}</p>
+                                <p><strong>Symbol:</strong> ${(crypto.symbol || 'N/A').toUpperCase()}</p>
+                            </div>
+                        </div>
+                        <div class="details-grid">
+                            <div class="detail-card">
+                                <h3>Current Price</h3>
+                                <p class="value">${price}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>Market Cap</h3>
+                                <p class="value">${marketCap}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>24h Volume</h3>
+                                <p class="value">${volume}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>1h Change</h3>
+                                <p class="value ${changeClass1h}">${formatChange(change1h)}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>24h Change</h3>
+                                <p class="value ${changeClass24h}">${formatChange(change24h)}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>24h High</h3>
+                                <p class="value">${formatPrice(high24h)}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>24h Low</h3>
+                                <p class="value">${formatPrice(low24h)}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>Circulating Supply</h3>
+                                <p class="value">${circulatingSupply}</p>
+                            </div>
+                            <div class="detail-card">
+                                <h3>Max Supply</h3>
+                                <p class="value">${maxSupply}</p>
+                            </div>
+                        </div>
+                        ${linksHtml}
+                    `;
+                    
+                    detailsContainer.innerHTML = detailsHtml;
+                })
+                .catch(error => {
+                    console.error('Error fetching crypto details:', error);
+                    detailsContainer.innerHTML = '<div class="loading-state">⚠️ Failed to load contract details</div>';
+                });
+        }
+        
+        function showListView() {
+            const listView = document.getElementById('listView');
+            const detailsView = document.getElementById('detailsView');
+            
+            listView.style.display = 'block';
+            detailsView.classList.remove('show');
+        }
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
 
 
 
